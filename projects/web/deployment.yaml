@@ -1,0 +1,25 @@
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hedgedoc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hedgedoc
+  template:
+    metadata:
+      labels:
+        app: hedgedoc
+    spec:
+      containers:
+      - name: hedgedoc
+        image: quay.io/hedgedoc/hedgedoc:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: CMD_DB_URL
+          value: "postgres://hedgedoc:hedgedoc@postgres:5432/hedgedoc"
+        - name: CMD_URL_ADDPORT
+          value: "true"
