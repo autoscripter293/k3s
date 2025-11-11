@@ -1,0 +1,12 @@
+# kubeconfigs
+cluster/k3s.yaml
+cluster/*.conf
+
+# temporäre Dateien
+*.swp
+*.tmp
+*.log
+logs/
+
+# Node modules, falls vorhanden
+node_modules/
