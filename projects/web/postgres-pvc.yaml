@@ -6,6 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: local-path   # <-- wichtig für K3s
   resources:
     requests:
       storage: 1Gi
