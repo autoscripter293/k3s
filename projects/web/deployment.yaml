@@ -1,8 +1,8 @@
-# deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hedgedoc
+  namespace: default
 spec:
   replicas: 1
   selector:
@@ -13,19 +13,17 @@ spec:
       labels:
         app: hedgedoc
     spec:
+      nodeSelector:
+        kubernetes.io/arch: "arm64"  # für ARM64, sonst "amd64" für x86
       containers:
-      - name: hedgedoc
-        image: quay.io/hedgedoc/hedgedoc:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: CMD_DB_URL
-          value: "postgres://hedgedoc:hedgedoc@hedgedoc-postgres:5432/hedgedoc?ssl=false"
-        - name: CMD_DOMAIN
-          value: "notes.druckruck.de"
-        - name: CMD_URL_ADDPORT
-          value: "true"
-        - name: CMD_PROTOCOL_USESSL
-          value: "true"
-        - name: CMD_SESSION_SECRET
-          value: "irgendeinRandomSecret1234"
+        - name: hedgedoc
+          image: quay.io/hedgedoc/hedgedoc:latest
+          env:
+            - name: CMD_DB_URL
+              value: postgres://hedgedoc:hedgedocpassword@hedgedoc-postgres:5432/hedgedoc
+            - name: CMD_DB_SSL
+              value: "false"
+            - name: CMD_PROTOCOL_USESSL
+              value: "false"
+          ports:
+            - containerPort: 3000

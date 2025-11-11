@@ -1,12 +1,11 @@
-# postgres-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: hedgedoc-postgres
+  namespace: default
 spec:
   selector:
     app: hedgedoc-postgres
   ports:
-    - protocol: TCP
-      port: 5432
+    - port: 5432
       targetPort: 5432

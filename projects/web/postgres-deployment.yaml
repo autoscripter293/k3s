@@ -1,8 +1,8 @@
-# postgres-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hedgedoc-postgres
+  namespace: default
 spec:
   replicas: 1
   selector:
@@ -13,22 +13,24 @@ spec:
       labels:
         app: hedgedoc-postgres
     spec:
+      nodeSelector:
+        kubernetes.io/arch: "arm64"
       containers:
-      - name: postgres
-        image: postgres:15-alpine
-        env:
-        - name: POSTGRES_USER
-          value: hedgedoc
-        - name: POSTGRES_PASSWORD
-          value: hedgedoc
-        - name: POSTGRES_DB
-          value: hedgedoc
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: hedgedoc-pgdata
-          mountPath: /var/lib/postgresql/data
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_DB
+              value: hedgedoc
+            - name: POSTGRES_USER
+              value: hedgedoc
+            - name: POSTGRES_PASSWORD
+              value: hedgedocpassword
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
       volumes:
-      - name: hedgedoc-pgdata
-        persistentVolumeClaim:
-          claimName: hedgedoc-pvc
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: hedgedoc-pvc

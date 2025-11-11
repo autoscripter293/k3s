@@ -1,12 +1,11 @@
-# postgres-pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: hedgedoc-pvc
+  namespace: default
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path   # <-- wichtig für K3s
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi

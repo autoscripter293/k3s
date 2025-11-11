@@ -1,12 +1,11 @@
-# service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: hedgedoc-service
+  namespace: default
 spec:
   selector:
     app: hedgedoc
   ports:
-    - protocol: TCP
-      port: 80        # Traefik spricht über 80/443
+    - port: 80
       targetPort: 3000
