@@ -8,7 +8,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   rules:
-  - host: hedgedoc.dein-domain.de
+  - host: notes.druckruck.de
     http:
       paths:
       - path: /
