@@ -1,89 +1,166 @@
 #!/bin/bash
 # =============================================================================
-# HomeLab K3s Cluster Setup – Bash-Dokumentation
-# =============================================================================
-# Dieses Dokument beschreibt die Installation von K3s auf einem Cluster aus
-# 3 Head Nodes (Master) und 2 Compute Nodes (Worker) sowie die Einrichtung
-# eines Cloudflare Tunnels für sicheren Zugriff ohne öffentliche IP.
+# HomeLab K3s Cluster Setup – Vollständiges Bash-Dokument
+# Mit VLAN10/20/30, Cloudflare Managed Tunnel + GitOps Deployment
 # =============================================================================
 
-# ------------------------------
-# 1️⃣ Raspberry Pi vorbereiten
-# ------------------------------
+# =============================================================================
+# 1️⃣ Raspberry Pi OS vorbereiten
+# =============================================================================
+# 64-bit Raspberry Pi OS Lite flashen
+# SSH aktivieren, Hostnames vergeben: master1, master2, master3, worker1, worker2
 
-# 1. Flash Raspberry Pi OS Lite (64-bit)
-# 2. SSH aktivieren
-# 3. Hostnamen vergeben:
-#    head1, head2, head3, node1, node2
-# 4. System aktualisieren:
 sudo apt update && sudo apt full-upgrade -y
 sudo reboot
 
-# ------------------------------
-# 2️⃣ K3s Installation
-# ------------------------------
+# =============================================================================
+# 2️⃣ VLAN-Setup auf Raspberry Pi (Master + Worker)
+# =============================================================================
+# VLAN10 = Management/Admin
+# VLAN20 = Cluster/K3s Nodes
+# VLAN30 = Services / Guest / IoT
 
-# 2.1 Installation auf Primary Head Node (head1)
-# curl Befehl lädt und installiert K3s automatisch
+# --- MASTER (head1) ---
+sudo ip link add link eth0 name eth0.10 type vlan id 10
+sudo ip addr add 10.0.10.1/24 dev eth0.10
+sudo ip link set dev eth0.10 up
+
+sudo ip link add link eth0 name eth0.20 type vlan id 20
+sudo ip addr add 10.0.20.1/24 dev eth0.20
+sudo ip link set dev eth0.20 up
+
+sudo ip link add link eth0 name eth0.30 type vlan id 30
+sudo ip addr add 10.0.30.1/24 dev eth0.30
+sudo ip link set dev eth0.30 up
+
+# --- WORKER (node1) ---
+sudo ip link add link eth0 name eth0.10 type vlan id 10
+sudo ip addr add 10.0.10.2/24 dev eth0.10
+sudo ip link set dev eth0.10 up
+
+sudo ip link add link eth0 name eth0.20 type vlan id 20
+sudo ip addr add 10.0.20.2/24 dev eth0.20
+sudo ip link set dev eth0.20 up
+
+sudo ip link add link eth0 name eth0.30 type vlan id 30
+sudo ip addr add 10.0.30.2/24 dev eth0.30
+sudo ip link set dev eth0.30 up
+
+# --- VLAN-Verbindung testen ---
+echo "Ping Master -> Worker VLAN10:"
+ping -c 3 10.0.10.2
+
+echo "Ping Master -> Worker VLAN20:"
+ping -c 3 10.0.20.2
+
+echo "Ping Master -> Worker VLAN30:"
+ping -c 3 10.0.30.2
+
+# =============================================================================
+# 3️⃣ K3s Installation (HA Cluster mit etcd)
+# =============================================================================
+
+# -------------------------
+# 3.1 Primary Master (head1)
+# -------------------------
 curl -sfL https://get.k3s.io | sh -
-# Token für weitere Nodes abrufen
 sudo cat /var/lib/rancher/k3s/server/node-token
-# IP von head1 merken
+# IP von head1 merken (z. B. 10.0.20.1 für Cluster VLAN)
 
-# 2.2 Installation auf weiteren Head Nodes (head2, head3)
-# Dies verbindet die Nodes zu einem HA etcd Cluster
-curl -sfL https://get.k3s.io | K3S_URL=https://<HEAD1_IP>:6443 K3S_TOKEN=<TOKEN> sh -
-# Kontrolle: kubectl get nodes
+# -------------------------
+# 3.2 Weitere Master (head2, head3)
+# -------------------------
 
-# 2.3 Installation auf Worker Nodes (node1, node2)
-curl -sfL https://get.k3s.io | K3S_URL=https://<HEAD1_IP>:6443 K3S_TOKEN=<TOKEN> sh -
-# Kontrolle: kubectl get nodes
+hostname -I        #Ip rausfinden
 
-# ------------------------------
-# 3️⃣ Cloudflare Tunnel Setup
-# ------------------------------
+curl -sfL https://get.k3s.io | \
+  K3S_URL=https://10.0.20.1:6443 \
+  K3S_TOKEN=<TOKEN> \
+  sh -
 
-# 3.1 cloudflared installieren auf allen Head Nodes
-sudo apt install cloudflared
+# -------------------------
+# 3.3 Worker Nodes (node1, node2)
+# -------------------------
+curl -sfL https://get.k3s.io | \
+  K3S_URL=https://10.0.20.1:6443 \
+  K3S_TOKEN=<TOKEN> \
+  sh -
 
-# 3.2 Tunnel erstellen auf Primary Master (head1)
-cloudflared tunnel create home-lab-tunnel
-cloudflared tunnel route dns home-lab-tunnel ha.example.com
+# Kontrolle
+sudo kubectl get nodes -A
 
-# 3.3 Tunnel-Konfiguration auf alle Head Nodes kopieren
-# (z. B. /root/.cloudflared/<tunnel-config.json>)
-# Auf head2 und head3:
-cloudflared tunnel run home-lab-tunnel
+# =============================================================================
+# 4️⃣ Cloudflare Tunnel – Service Token (Managed Mode)
+# =============================================================================
+# KEINE cert.pem, KEINE JSON Credentials – alles über Dashboard.
 
-# Optional als Systemservice starten:
-sudo cloudflared service install
+# -------------------------
+# 4.1 cloudflared installieren (arm64)
+# -------------------------
+cd /tmp
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
+sudo apt install ./cloudflared-linux-arm64.deb -y
+cloudflared --version
 
-# 3.4 HA und Load Balancing
-# Cloudflare verteilt Anfragen automatisch auf alle Tunnel-Endpunkte
-# Traefik auf Head Nodes empfängt den Traffic und routet zu Services
+# -------------------------
+# 4.2 Tunnel im Cloudflare Dashboard anlegen
+# -------------------------
+# Cloudflare Zero Trust → Access → Tunnels → Create Tunnel
+# → "Cloudflared" wählen → Managed Mode
+# → cloudflared service install <SERVICE_TOKEN>
 
-# ------------------------------
-# 4️⃣ Traefik & Ingress
-# ------------------------------
+# -------------------------
+# 4.3 Service Token auf jedem head-node ausführen
+# -------------------------
+sudo cloudflared service install <SERVICE_TOKEN>
+sudo systemctl enable --now cloudflared
+sudo systemctl status cloudflared
 
-# Traefik ist standardmäßig in K3s installiert
-# Deployment + Service YAML für eigene Services vorbereiten
-# Ingress YAML:
-# - host: ha.example.com
-# - path / → zu HomeAssistant oder anderen Services
-# - TLS / HTTPS über Cloudflare oder Traefik ACME möglich
+# =============================================================================
+# 5️⃣ Cloudflare Hostnames (Subdomains) konfigurieren – Dashboard
+# =============================================================================
+# Beispiele:
+# web.example.com      → HTTP → http://localhost:80
+# ssh.example.com      → SSH  → ssh://localhost:22
+# notes.example.com    → HTTP → http://localhost:80
 
-# ------------------------------
-# 5️⃣ Kontrolle
-# ------------------------------
-
-# Knoten prüfen
-kubectl get nodes
-# Pods prüfen
-kubectl get pods -A
-# Ingress prüfen
+# =============================================================================
+# 6️⃣ Traefik & Ingress (K3s integriert)
+# =============================================================================
+# Traefik kommt vorinstalliert, EntryPoints: :80 und :443
+kubectl get pods -n kube-system
 kubectl get ingress -A
 
 # =============================================================================
-# Ende des Bash-Dokuments – alle Befehle dienen als Dokumentation / Anleitung
+# 7️⃣ GitHub GitOps Workflow
+# =============================================================================
+cd ~
+git clone git@github.com:autoscripter293/k3s.git
+cd ~/k3s
+
+# Neue YAMLs hinzufügen
+git add projects/web/*
+git commit -m "Add web project YAMLs"
+git push origin main
+
+# Deployment ins Cluster übernehmen
+git pull
+sudo kubectl apply -f projects/web/
+
+# QUICK & DIRTY Deployment
+git add projects/privatebin/*
+git commit -m "Add PrivateBin deployment + ingress"
+git push origin main
+git pull
+sudo kubectl apply -f projects/privatebin/
+
+# =============================================================================
+# 8️⃣ Kontrolle
+# =============================================================================
+sudo kubectl get nodes
+sudo kubectl get pods -A
+sudo kubectl get ingress -A
+
+# =============================================================================
+# Ende des Bash-Dokuments
 # =============================================================================
