@@ -8,18 +8,6 @@ volumeBindingMode: WaitForFirstConsumer
 parameters:
   basePath: "/var/openebs"
 
----
-# MariaDB Secret
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mariadb-secret
-type: Opaque
-stringData:
-  mysql-root-password: "Schanzenschiss1873402!"
-  mysql-database: "nextcloud"
-  mysql-user: "nextcloud"
-  mysql-password: "Schanzenschiss1873402!"
 
 ---
 # MariaDB StatefulSet
