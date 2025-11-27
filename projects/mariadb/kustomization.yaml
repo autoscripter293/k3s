@@ -2,5 +2,5 @@ apiVersion: kustomize.config.k8s.io/v1
 kind: Kustomization
 resources:
   - secret.yaml
-  - statefulset.yaml
+  - stateful.yaml
   - service.yaml
