@@ -3,8 +3,8 @@ apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: headlamp
-  namespace: flux-system # Flux controllers laufen typischerweise hier
+  namespace: flux-system
 spec:
   interval: 1h
-  # ✅ Hier ist der offizielle Link zum Headlamp Chart
-  url: https://headlamp-k8s.github.io/headlamp/
+  # ✅ KORRIGIERTER LINK!
+  url: https://headlamp-k8s.github.io/helm-charts
