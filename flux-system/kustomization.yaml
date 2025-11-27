@@ -1,5 +1,7 @@
+# ~/k3s/flux-system/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - gotk-components.yaml
   - gotk-sync.yaml
+  - projects-kustomization.yaml # <-- Diese Zeile muss drin sein!
