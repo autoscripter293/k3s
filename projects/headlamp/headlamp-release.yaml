@@ -1,0 +1,38 @@
+# ~/k3s/projects/headlamp/headlamp-release.yaml
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: headlamp
+  namespace: headlamp # Release-Objekt in den Headlamp Namespace legen
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: headlamp
+      version: "*" # Nimm die neueste Version (latest)
+      sourceRef:
+        kind: HelmRepository
+        name: headlamp
+        namespace: flux-system
+  # ✅ Konfigurationswerte (entspricht der "values.yaml" eines Helm Charts)
+  values:
+    # Service Konfiguration
+    service:
+      type: NodePort
+      port: 80
+      targetPort: 4466
+      nodePort: 30466 # Fester, leicht zu merkender Port
+      
+    # RBAC Konfiguration
+    # Das Helm Chart erstellt automatisch den ServiceAccount und das ClusterRoleBinding
+    serviceAccount:
+      create: true
+      name: headlamp-admin
+    
+    clusterRole:
+      create: true
+      # Fügt Regeln hinzu, die für die Anzeige aller Cluster-Infos notwendig sind
+      rules:
+      - apiGroups: ["*"]
+        resources: ["*"]
+        verbs: ["*"]

@@ -1,0 +1,7 @@
+# ~/k3s/projects/headlamp/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - headlamp-source.yaml
+  - headlamp-release.yaml

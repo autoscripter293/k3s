@@ -1,0 +1,5 @@
+# ~/k3s/projects/headlamp/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: headlamp # Ein dedizierter Namespace

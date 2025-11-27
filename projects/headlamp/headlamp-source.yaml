@@ -1,0 +1,10 @@
+# ~/k3s/projects/headlamp/headlamp-source.yaml
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: headlamp
+  namespace: flux-system # Flux controllers laufen typischerweise hier
+spec:
+  interval: 1h
+  # ✅ Hier ist der offizielle Link zum Headlamp Chart
+  url: https://headlamp-k8s.github.io/headlamp/
