@@ -1,4 +1,3 @@
-# ~/k3s/flux-system/projects-kustomization.yaml
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -6,10 +5,9 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  # ✅ Korrekter Pfad: Der Pfad ist relativ zum Root deines Git-Repos (d.h. ~/k3s)
-  path: ./projects 
+  path: ./projects
   prune: true
   sourceRef:
     kind: GitRepository
-    name: flux-system # Sollte der Name deines Haupt-GitRepository-Objekts sein
-  targetNamespace: headlamp # Wenn du möchtest, dass alle Ressourcen hier landen
+    name: flux-system
+  # targetNamespace nur bei einzelnen Ressourcen oder in den manifests setzen, NICHT direkt hier
