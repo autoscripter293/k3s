@@ -1,5 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: privatebin
 resources:
   - deployment.yaml   # oder wie auch immer deine PrivateBin-Ressourcen heißen
   - service.yaml
