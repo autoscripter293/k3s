@@ -1,6 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: nextcloud
 resources:
   - secret.yaml
-  - stateful.yaml  # <-- Achte auf die Endung, die du korrigiert hattest!
+  - stateful.yaml
   - service.yaml
