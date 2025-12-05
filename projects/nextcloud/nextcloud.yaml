@@ -1,5 +1,5 @@
 # ---------------------------
-# nextcloud-resources.yaml
+# nextcloud.yaml - Stabilisierte Version
 # ---------------------------
 
 # StorageClass für Nextcloud
@@ -12,6 +12,7 @@ volumeBindingMode: WaitForFirstConsumer
 
 ---
 # PersistentVolume für Nextcloud
+# PVs sind cluster-weit, daher kein Namespace hier nötig
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -42,6 +43,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: nextcloud-pvc
+  namespace: nextcloud  # <--- WICHTIG: Erzwingt den korrekten Namespace
 spec:
   accessModes:
     - ReadWriteOnce
@@ -49,12 +51,15 @@ spec:
   resources:
     requests:
       storage: 300Gi
+  # Selector entfernt für sauberes Binding
+
 ---
-# Redis Deployment (für Nextcloud-Cache)
+# Redis Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
+  namespace: nextcloud
 spec:
   replicas: 1
   selector:
@@ -84,6 +89,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
+  namespace: nextcloud
 spec:
   selector:
     app: redis
@@ -97,6 +103,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nextcloud
+  namespace: nextcloud
 spec:
   replicas: 1
   selector:
@@ -107,6 +114,7 @@ spec:
       labels:
         app: nextcloud
     spec:
+      # Stellt sicher, dass der Pod auf dem gleichen Node wie das PV landet
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -137,6 +145,8 @@ spec:
                 secretKeyRef:
                   name: mariadb-secret
                   key: mysql-password
+            - name: REDIS_HOST
+              value: redis
           ports:
             - containerPort: 80
           volumeMounts:
@@ -153,6 +163,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nextcloud
+  namespace: nextcloud
 spec:
   selector:
     app: nextcloud
@@ -161,54 +172,12 @@ spec:
       targetPort: 80
 
 ---
-# Nextcloud CronJob
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: nextcloud-cron
-spec:
-  schedule: "*/5 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: nextcloud-cron
-              image: nextcloud:latest
-              command: ["php", "/var/www/html/occ", "background:cron"]
-              env:
-                - name: MYSQL_HOST
-                  value: mariadb
-                - name: MYSQL_DATABASE
-                  valueFrom:
-                    secretKeyRef:
-                      name: mariadb-secret
-                      key: mysql-database
-                - name: MYSQL_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: mariadb-secret
-                      key: mysql-user
-                - name: MYSQL_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: mariadb-secret
-                      key: mysql-password
-              volumeMounts:
-                - name: nextcloud-data
-                  mountPath: /var/www/html
-          restartPolicy: OnFailure
-          volumes:
-            - name: nextcloud-data
-              persistentVolumeClaim:
-                claimName: nextcloud-pvc
-
----
 # Ingress für Nextcloud
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nextcloud-ingress
+  namespace: nextcloud
   annotations:
     kubernetes.io/ingress.class: traefik
 spec:
