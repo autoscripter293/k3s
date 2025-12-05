@@ -49,10 +49,6 @@ spec:
   resources:
     requests:
       storage: 300Gi
-  selector:
-    matchLabels:
-      app: nextcloud
-
 ---
 # Redis Deployment (für Nextcloud-Cache)
 apiVersion: apps/v1
