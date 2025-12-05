@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: nextcloud
 resources:
   - mariadb.yaml
+  - secret.yaml
