@@ -1,10 +1,40 @@
-# StorageClass für lokale SSD
+# ---------------------------
+# nextcloud-resources.yaml
+# ---------------------------
+
+# StorageClass für Nextcloud
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: local-ssd
+  name: local-ssd-nextcloud
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
+
+---
+# PersistentVolume für Nextcloud
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nextcloud-pv
+  labels:
+    app: nextcloud
+spec:
+  capacity:
+    storage: 300Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-ssd-nextcloud
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /var/openebs/nextcloud
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - worker1
 
 ---
 # PersistentVolumeClaim für Nextcloud
@@ -15,10 +45,13 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-ssd
+  storageClassName: local-ssd-nextcloud
   resources:
     requests:
       storage: 300Gi
+  selector:
+    matchLabels:
+      app: nextcloud
 
 ---
 # Redis Deployment (für Nextcloud-Cache)
@@ -37,17 +70,17 @@ spec:
         app: redis
     spec:
       containers:
-      - name: redis
-        image: redis:7.2
-        command: ["redis-server", "--appendonly", "yes"]
-        ports:
-        - containerPort: 6379
-        volumeMounts:
-        - name: redis-data
-          mountPath: /data
+        - name: redis
+          image: redis:7.2
+          command: ["redis-server", "--appendonly", "yes"]
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
       volumes:
-      - name: redis-data
-        emptyDir: {}
+        - name: redis-data
+          emptyDir: {}
 
 ---
 # Redis Service
@@ -59,8 +92,8 @@ spec:
   selector:
     app: redis
   ports:
-  - port: 6379
-    targetPort: 6379
+    - port: 6379
+      targetPort: 6379
 
 ---
 # Nextcloud Deployment
@@ -88,66 +121,9 @@ spec:
                     values:
                       - worker1
       containers:
-      - name: nextcloud
-        image: nextcloud:latest
-        env:
-        - name: MYSQL_HOST
-          value: mariadb
-        - name: MYSQL_DATABASE
-          valueFrom:
-            secretKeyRef:
-              name: mariadb-secret
-              key: mysql-database
-        - name: MYSQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: mariadb-secret
-              key: mysql-user
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mariadb-secret
-              key: mysql-password
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: nextcloud-data
-          mountPath: /var/www/html
-      volumes:
-      - name: nextcloud-data
-        persistentVolumeClaim:
-          claimName: nextcloud-pvc
-
----
-# Nextcloud Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: nextcloud
-spec:
-  selector:
-    app: nextcloud
-  ports:
-  - port: 80
-    targetPort: 80
-
----
-# Nextcloud CronJob
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: nextcloud-cron
-spec:
-  schedule: "*/5 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-          - name: nextcloud-cron
-            image: nextcloud:latest
-            command: ["php", "/var/www/html/occ", "background:cron"]
-            env:
+        - name: nextcloud
+          image: nextcloud:latest
+          env:
             - name: MYSQL_HOST
               value: mariadb
             - name: MYSQL_DATABASE
@@ -165,14 +141,71 @@ spec:
                 secretKeyRef:
                   name: mariadb-secret
                   key: mysql-password
-            volumeMounts:
+          ports:
+            - containerPort: 80
+          volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
+      volumes:
+        - name: nextcloud-data
+          persistentVolumeClaim:
+            claimName: nextcloud-pvc
+
+---
+# Nextcloud Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud
+spec:
+  selector:
+    app: nextcloud
+  ports:
+    - port: 80
+      targetPort: 80
+
+---
+# Nextcloud CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-cron
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: nextcloud-cron
+              image: nextcloud:latest
+              command: ["php", "/var/www/html/occ", "background:cron"]
+              env:
+                - name: MYSQL_HOST
+                  value: mariadb
+                - name: MYSQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: mariadb-secret
+                      key: mysql-database
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: mariadb-secret
+                      key: mysql-user
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mariadb-secret
+                      key: mysql-password
+              volumeMounts:
+                - name: nextcloud-data
+                  mountPath: /var/www/html
           restartPolicy: OnFailure
           volumes:
-          - name: nextcloud-data
-            persistentVolumeClaim:
-              claimName: nextcloud-pvc
+            - name: nextcloud-data
+              persistentVolumeClaim:
+                claimName: nextcloud-pvc
 
 ---
 # Ingress für Nextcloud
@@ -184,13 +217,13 @@ metadata:
     kubernetes.io/ingress.class: traefik
 spec:
   rules:
-  - host: nextcloud.druckruck.de
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: nextcloud
-            port:
-              number: 80
+    - host: nextcloud.druckruck.de
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nextcloud
+                port:
+                  number: 80
