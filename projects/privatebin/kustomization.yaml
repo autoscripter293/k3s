@@ -4,3 +4,4 @@ namespace: privatebin
 resources:
   - deployment.yaml   # oder wie auch immer deine PrivateBin-Ressourcen heißen
   - service.yaml
+  - ingress.yaml
