@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-maintenance
+  namespace: nextcloud
+spec:
+  # 💡 TEST-ZEITPLAN: LÄUFT ALLE 5 MINUTEN FÜR DEN TEST!
+  # Ändere dies später auf "0 3 * * 0" (Sonntag 3 Uhr)
+  schedule: "0 3 * * 0"
+  concurrencyPolicy: Forbid 
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          # Wir setzen die Ressourcen auf ein Minimum, um den Fehler "Pending" zu vermeiden.
+          containers:
+          - name: maintenance-job
+            image: nextcloud:latest
+            # Reduzierte Ressourcen, falls du wenig RAM/CPU frei hast
+            resources:
+              requests:
+                cpu: "50m"
+                memory: "64Mi"
+              limits:
+                cpu: "250m"
+                memory: "256Mi"
+            command: ["sh", "-c"]
+            args:
+            - |
+              echo "Starte Nextcloud-Wartungsarbeiten..."
+              /var/www/html/occ db:add-missing-indices
+              /var/www/html/occ maintenance:repair --include-expensive
+              echo "Wartungsarbeiten abgeschlossen."
+              
+            # 🔑 DATENBANK-SECRETS aus nextcloud.yaml übernommen!
+            env:
+              - name: MYSQL_HOST
+                value: mariadb
+              - name: MYSQL_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: mariadb-secret
+                    key: mysql-database
+              - name: MYSQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: mariadb-secret
+                    key: mysql-user
+              - name: MYSQL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: mariadb-secret
+                    key: mysql-password
+            
+            # WICHTIG: Mounten des Nextcloud-Volumes
+            volumeMounts:
+              - name: nextcloud-data
+                mountPath: /var/www/html
+          
+          volumes:
+            - name: nextcloud-data
+              persistentVolumeClaim:
+                claimName: nextcloud-pvc
+                
+          # Zwingt den Pod auf den Worker1 Node, wo dein PV liegt
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - worker1
+          restartPolicy: OnFailure
