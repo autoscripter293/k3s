@@ -4,3 +4,4 @@ namespace: nextcloud
 resources:
   - nextcloud.yaml
   - secret.yaml
+  - ingress.yaml
