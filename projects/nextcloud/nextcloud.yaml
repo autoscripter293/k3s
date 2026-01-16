@@ -181,6 +181,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: traefik
 spec:
+  ingressClassName: traefik
   rules:
     - host: nextcloud.druckruck.de
       http:
