@@ -79,7 +79,8 @@ spec:
                       - worker1
       containers:
         - name: nextcloud
-          image: nextcloud:29.0.1
+          image: nextcloud:32.0.5-apache
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           env:
