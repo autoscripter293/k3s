@@ -1,57 +1,11 @@
-# ---------------------------
-# nextcloud.yaml - Stabilisierte Version
-# ---------------------------
-
-# StorageClass für Nextcloud
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: local-ssd-nextcloud
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
-
----
-# PersistentVolume für Nextcloud
-# PVs sind cluster-weit, daher kein Namespace hier nötig
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: nextcloud-pv
-  labels:
-    app: nextcloud
-spec:
-  capacity:
-    storage: 300Gi
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-ssd-nextcloud
-  persistentVolumeReclaimPolicy: Retain
-  local:
-    path: /var/openebs/nextcloud
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-                - worker1
-
----
-# PersistentVolumeClaim für Nextcloud
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nextcloud-pvc
-  namespace: nextcloud  # <--- WICHTIG: Erzwingt den korrekten Namespace
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-ssd-nextcloud
-  resources:
-    requests:
-      storage: 300Gi
-  # Selector entfernt für sauberes Binding
+# nextcloud.yaml
+# =========================
+# Erwartet:
+# - Namespace: nextcloud (existiert)
+# - PVC: nextcloud-pvc (existiert, gebunden an PV)
+# - Secret: mariadb-secret (existiert)
+# - MariaDB Service: mariadb (existiert)
+# =========================
 
 ---
 # Redis Deployment
@@ -73,7 +27,7 @@ spec:
       containers:
         - name: redis
           image: redis:7.2
-          command: ["redis-server", "--appendonly", "yes"]
+          args: ["--appendonly", "yes"]
           ports:
             - containerPort: 6379
           volumeMounts:
@@ -114,7 +68,6 @@ spec:
       labels:
         app: nextcloud
     spec:
-      # Stellt sicher, dass der Pod auf dem gleichen Node wie das PV landet
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -126,7 +79,9 @@ spec:
                       - worker1
       containers:
         - name: nextcloud
-          image: nextcloud:latest
+          image: nextcloud:29.0.1
+          ports:
+            - containerPort: 80
           env:
             - name: MYSQL_HOST
               value: mariadb
@@ -147,8 +102,6 @@ spec:
                   key: mysql-password
             - name: REDIS_HOST
               value: redis
-          ports:
-            - containerPort: 80
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
@@ -170,4 +123,3 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-

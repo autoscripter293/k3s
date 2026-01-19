@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"PersistentVolume","metadata":{"annotations":{},"labels":{"app":"nextcloud"},"name":"nextcloud-pv"},"spec":{"accessModes":["ReadWriteOnce"],"capacity":{"storage":"300Gi"},"local":{"path":"/var/openebs/nextcloud"},"nodeAffinity":{"required":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"In","values":["worker1"]}]}]}},"persistentVolumeReclaimPolicy":"Retain","storageClassName":"local-ssd-nextcloud"}}
+    pv.kubernetes.io/bound-by-controller: "yes"
+  creationTimestamp: "2025-12-03T09:56:31Z"
+  deletionGracePeriodSeconds: 0
+  deletionTimestamp: "2026-01-18T17:57:38Z"
+  labels:
+    app: nextcloud
+  name: nextcloud-pv
+  resourceVersion: "17577860"
+  uid: debbdcff-7cec-482a-8d9a-8ffd74b7c9c0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 300Gi
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: nextcloud-pvc
+    namespace: nextcloud
+    resourceVersion: "3287336"
+    uid: fbe3acfc-ac2d-4cfb-a9e7-c374528779b4
+  local:
+    path: /var/openebs/nextcloud
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - worker1
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-ssd-nextcloud
+  volumeMode: Filesystem
+status:
+  lastPhaseTransitionTime: "2025-12-05T12:59:45Z"
+  phase: Bound
