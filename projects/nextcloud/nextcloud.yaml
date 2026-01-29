@@ -1,11 +1,10 @@
-# nextcloud.yaml
-# =========================
-# Erwartet:
-# - Namespace: nextcloud (existiert)
-# - PVC: nextcloud-pvc (existiert, gebunden an PV)
-# - Secret: mariadb-secret (existiert)
-# - MariaDB Service: mariadb (existiert)
-# =========================
+k# nextcloud.yaml
+# =====================================================
+# Nextcloud + Redis
+# - läuft als www-data (UID 33)
+# - fixt alte UID-1000 Dateien per initContainer
+# - persistent über PVC nextcloud-pvc
+# =====================================================
 
 ---
 # Redis Deployment
@@ -68,6 +67,28 @@ spec:
       labels:
         app: nextcloud
     spec:
+      # 🔐 SecurityContext: www-data
+      securityContext:
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+
+      # 🛠️ Einmaliger Fix für alte UID-1000 Dateien
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Fixing Nextcloud permissions..."
+              chown -R 33:33 /var/www/html
+              chmod 750 /var/www/html/config
+              chmod 640 /var/www/html/config/config.php || true
+          volumeMounts:
+            - name: nextcloud-data
+              mountPath: /var/www/html
+
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -77,12 +98,14 @@ spec:
                     operator: In
                     values:
                       - worker1
+
       containers:
         - name: nextcloud
           image: nextcloud:32.0.5-apache
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+
           env:
             - name: MYSQL_HOST
               value: mariadb
@@ -103,9 +126,11 @@ spec:
                   key: mysql-password
             - name: REDIS_HOST
               value: redis
+
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
+
       volumes:
         - name: nextcloud-data
           persistentVolumeClaim:
@@ -124,3 +149,4 @@ spec:
   ports:
     - port: 80
       targetPort: 80
+
