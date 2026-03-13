@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  path: ./storage/openebs
+  path: ./apps/openebs       # Hier sagt Flux, wo es gucken soll
   prune: true
   sourceRef:
     kind: GitRepository
