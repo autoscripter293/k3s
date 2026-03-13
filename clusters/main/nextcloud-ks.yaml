@@ -1,0 +1,12 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: nextcloud
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./apps/nextcloud   # Hier schaut Flux nach den Dateien
+  prune: true              # Löscht Dinge im Cluster, wenn du sie im Git löschst
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
