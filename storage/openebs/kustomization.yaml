@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  path: ./projects/storage/openebs
+  path: ~/k3s/storage/openebs
   prune: true
   sourceRef:
     kind: GitRepository
