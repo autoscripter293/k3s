@@ -1,4 +1,4 @@
-apiVersion: helm.toolkit.fluxcd.io/v2
+kapiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: nextcloud
@@ -14,6 +14,7 @@ spec:
         name: nextcloud
         namespace: flux-system
   values:
+    # --- Ingress (Domain) ---
     ingress:
       enabled: true
       className: traefik
@@ -28,8 +29,9 @@ spec:
     nextcloud:
       nodeSelector:
         kubernetes.io/hostname: "worker1"
+      
+      # Verbindung zur internen MariaDB
       extraEnv:
-        # Falls MariaDB über das Chart läuft, ist das meist der interne Hostname
         - name: MYSQL_HOST
           value: "nextcloud-mariadb.nextcloud.svc.cluster.local"
         - name: MYSQL_DATABASE
@@ -47,27 +49,23 @@ spec:
         - name: OPCACHE_MAX_ACCELERATED_FILES
           value: "10000"
 
-      extraVolumes:
-        - name: nc-data
-          hostPath:
-            path: /var/openebs/nextcloud/data
-        - name: nc-config
-          hostPath:
-            path: /var/openebs/nextcloud/config
-        - name: nc-apps
-          hostPath:
-            path: /var/openebs/nextcloud/custom_apps
-      extraVolumeMounts:
-        - name: nc-data
-          mountPath: /var/www/html/data
-        - name: nc-config
-          mountPath: /var/www/html/config
-        - name: nc-apps
-          mountPath: /var/www/html/custom_apps
-
+    # --- Nextcloud Speicher (HostPath Fix) ---
     persistence:
-      enabled: false 
+      enabled: true
+      nextcloudData:
+        enabled: true
+        type: hostPath
+        hostPath: /var/openebs/nextcloud/data
+      nextcloudConfig:
+        enabled: true
+        type: hostPath
+        hostPath: /var/openebs/nextcloud/config
+      nextcloudApps:
+        enabled: true
+        type: hostPath
+        hostPath: /var/openebs/nextcloud/custom_apps
 
+    # --- MariaDB (10.11 mit deinem PVC) ---
     mariadb:
       enabled: true
       image:
@@ -88,5 +86,4 @@ spec:
           runAsUser: 999
         persistence:
           enabled: true
-          # HIER DIE ÄNDERUNG: Wir nutzen das PVC von oben!
           existingClaim: "mariadb-existing-pvc"
