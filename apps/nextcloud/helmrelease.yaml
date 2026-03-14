@@ -20,7 +20,7 @@ spec:
       annotations:
         traefik.ingress.kubernetes.io/router.entrypoints: web
       hosts:
-        - host: druckruck.de
+        - host: nextcloud.druckruck.de
           paths:
             - path: /
               pathType: Prefix
