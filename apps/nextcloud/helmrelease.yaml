@@ -1,4 +1,4 @@
-apiVersion: helm.toolkit.fluxcd.io/v2
+kapiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: nextcloud
@@ -14,7 +14,23 @@ spec:
         name: nextcloud
         namespace: nextcloud
   values:
-    # --- Ingress ---
+    # ==========================================
+    # NUCLEAR FIX: GANZ OBEN UNTER VALUES
+    # ==========================================
+    nodeSelector:
+      kubernetes.io/hostname: "worker1"
+
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - worker1
+    # ==========================================
+
     ingress:
       enabled: true
       className: traefik
@@ -26,22 +42,7 @@ spec:
             - path: /
               pathType: Prefix
 
-    # --- Nextcloud App (HIER MUSS DIE FORCE-LOGIK REIN) ---
     nextcloud:
-      # 1. Force-Affinity direkt im App-Block
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - worker1
-      
-      nodeSelector:
-        kubernetes.io/hostname: "worker1"
-
       extraEnv:
         - name: MYSQL_HOST
           value: "nextcloud-mariadb.nextcloud.svc.cluster.local"
@@ -53,11 +54,10 @@ spec:
           value: "Schanzenschiss1873402!"
         - name: PHP_EXTENSIONS
           value: "mbstring,intl,bcmath"
-        # 2. DUMMY VARIABLE (Zwingt Kubernetes zu einem neuen Hash/Pod)
+        # Neuer Hash für erzwungenes Update
         - name: FORCE_REDEPLOY
-          value: "redeploy-to-worker1-v2"
+          value: "final-move-v4"
 
-    # --- Persistence ---
     persistence:
       enabled: true
       nextcloudData:
@@ -73,7 +73,6 @@ spec:
         type: hostPath
         hostPath: /var/openebs/nextcloud/custom_apps
 
-    # --- MariaDB ---
     mariadb:
       enabled: true
       primary:
