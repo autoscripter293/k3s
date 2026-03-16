@@ -1,4 +1,4 @@
-kapiVersion: helm.toolkit.fluxcd.io/v2
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: nextcloud
@@ -14,10 +14,6 @@ spec:
         name: nextcloud
         namespace: nextcloud
   values:
-    # --- GLOBALER FIX: Zwingt ALLES (auch den Web-Pod) auf Worker1 ---
-    nodeSelector:
-      kubernetes.io/hostname: "worker1"
-
     # --- Ingress ---
     ingress:
       enabled: true
@@ -30,11 +26,22 @@ spec:
             - path: /
               pathType: Prefix
 
-    # --- Nextcloud App Konfiguration ---
+    # --- Nextcloud App (HIER MUSS DIE FORCE-LOGIK REIN) ---
     nextcloud:
-      # Zur Sicherheit auch hier drin lassen
+      # 1. Force-Affinity direkt im App-Block
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - worker1
+      
       nodeSelector:
         kubernetes.io/hostname: "worker1"
+
       extraEnv:
         - name: MYSQL_HOST
           value: "nextcloud-mariadb.nextcloud.svc.cluster.local"
@@ -46,14 +53,11 @@ spec:
           value: "Schanzenschiss1873402!"
         - name: PHP_EXTENSIONS
           value: "mbstring,intl,bcmath"
-        - name: OPCACHE_MEMORY_CONSUMPTION
-          value: "512"
-        - name: OPCACHE_INTERNED_STRINGS_BUFFER
-          value: "16"
-        - name: OPCACHE_MAX_ACCELERATED_FILES
-          value: "10000"
+        # 2. DUMMY VARIABLE (Zwingt Kubernetes zu einem neuen Hash/Pod)
+        - name: FORCE_REDEPLOY
+          value: "redeploy-to-worker1-v2"
 
-    # --- Persistence (hostPath auf Worker1) ---
+    # --- Persistence ---
     persistence:
       enabled: true
       nextcloudData:
@@ -69,16 +73,9 @@ spec:
         type: hostPath
         hostPath: /var/openebs/nextcloud/custom_apps
 
-    # --- MariaDB (Bleibt wie gehabt) ---
+    # --- MariaDB ---
     mariadb:
       enabled: true
-      image:
-        tag: "10.11"
-      auth:
-        rootPassword: "Schanzenschiss1873402!"
-        database: nextcloud
-        username: nextcloud
-        password: "Schanzenschiss1873402!"
       primary:
         nodeSelector:
           kubernetes.io/hostname: "worker1"
