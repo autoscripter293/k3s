@@ -1,4 +1,4 @@
-apiVersion: helm.toolkit.fluxcd.io/v2
+kapiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: nextcloud
@@ -14,7 +14,11 @@ spec:
         name: nextcloud
         namespace: nextcloud
   values:
-    # --- Ingress (Deine Domain) ---
+    # --- GLOBALER FIX: Zwingt ALLES (auch den Web-Pod) auf Worker1 ---
+    nodeSelector:
+      kubernetes.io/hostname: "worker1"
+
+    # --- Ingress ---
     ingress:
       enabled: true
       className: traefik
@@ -28,6 +32,7 @@ spec:
 
     # --- Nextcloud App Konfiguration ---
     nextcloud:
+      # Zur Sicherheit auch hier drin lassen
       nodeSelector:
         kubernetes.io/hostname: "worker1"
       extraEnv:
@@ -48,7 +53,7 @@ spec:
         - name: OPCACHE_MAX_ACCELERATED_FILES
           value: "10000"
 
-    # --- Persistence (Der Nextcloud-Weg ohne Duplikate) ---
+    # --- Persistence (hostPath auf Worker1) ---
     persistence:
       enabled: true
       nextcloudData:
@@ -64,7 +69,7 @@ spec:
         type: hostPath
         hostPath: /var/openebs/nextcloud/custom_apps
 
-    # --- MariaDB Konfiguration ---
+    # --- MariaDB (Bleibt wie gehabt) ---
     mariadb:
       enabled: true
       image:
