@@ -12,7 +12,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: nextcloud
-        namespace: flux-system
+        namespace: nextcloud
   values:
     # --- Ingress (Deine Domain) ---
     ingress:
