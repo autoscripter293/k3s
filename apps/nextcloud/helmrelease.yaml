@@ -14,6 +14,7 @@ spec:
         name: nextcloud
         namespace: flux-system
   values:
+    # --- Ingress (Deine Domain) ---
     ingress:
       enabled: true
       className: traefik
@@ -25,6 +26,7 @@ spec:
             - path: /
               pathType: Prefix
 
+    # --- Nextcloud App Konfiguration ---
     nextcloud:
       nodeSelector:
         kubernetes.io/hostname: "worker1"
@@ -39,37 +41,30 @@ spec:
           value: "Schanzenschiss1873402!"
         - name: PHP_EXTENSIONS
           value: "mbstring,intl,bcmath"
+        - name: OPCACHE_MEMORY_CONSUMPTION
+          value: "512"
+        - name: OPCACHE_INTERNED_STRINGS_BUFFER
+          value: "16"
+        - name: OPCACHE_MAX_ACCELERATED_FILES
+          value: "10000"
 
-      # Wir binden die Volumes hier MANUELL ein, 
-      # um die Chart-Logik zu umgehen
-      extraVolumes:
-        - name: host-data
-          hostPath:
-            path: /var/openebs/nextcloud/data
-        - name: host-config
-          hostPath:
-            path: /var/openebs/nextcloud/config
-        - name: host-apps
-          hostPath:
-            path: /var/openebs/nextcloud/custom_apps
-      extraVolumeMounts:
-        - name: host-data
-          mountPath: /var/www/html/data
-        - name: host-config
-          mountPath: /var/www/html/config
-        - name: host-apps
-          mountPath: /var/www/html/custom_apps
-
-    # WICHTIG: Wir schalten die internen Mounts des Charts EXPLIZIT aus
+    # --- Persistence (Der Nextcloud-Weg ohne Duplikate) ---
     persistence:
-      enabled: false
+      enabled: true
       nextcloudData:
-        enabled: false
+        enabled: true
+        type: hostPath
+        hostPath: /var/openebs/nextcloud/data
       nextcloudConfig:
-        enabled: false
+        enabled: true
+        type: hostPath
+        hostPath: /var/openebs/nextcloud/config
       nextcloudApps:
-        enabled: false
+        enabled: true
+        type: hostPath
+        hostPath: /var/openebs/nextcloud/custom_apps
 
+    # --- MariaDB Konfiguration ---
     mariadb:
       enabled: true
       image:
