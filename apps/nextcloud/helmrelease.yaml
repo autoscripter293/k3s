@@ -59,10 +59,16 @@ spec:
           value: "mbstring,intl,bcmath"
         # Dummy Hash für das Update
         - name: FORCE_REDEPLOY
-          value: "final-kustomize-patch-v1"
+          value: "final-kustomize-patch-v2"
 
     persistence:
       enabled: true
+      # --- NEU: Haupt-Volume auf HostPath umgestellt (ersetzt das PVC) ---
+      nextcloud:
+        enabled: true
+        type: hostPath
+        hostPath: /var/openebs/nextcloud/root
+      # -----------------------------------------------------------------
       nextcloudData:
         enabled: true
         type: hostPath
