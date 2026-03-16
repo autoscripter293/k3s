@@ -1,4 +1,4 @@
-kapiVersion: helm.toolkit.fluxcd.io/v2
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: nextcloud
@@ -13,24 +13,27 @@ spec:
         kind: HelmRepository
         name: nextcloud
         namespace: nextcloud
+
+  # --- DAS IST DER WICHTIGSTE TEIL: DIE BRECHSTANGE ---
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: nextcloud
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: nextcloud
+              spec:
+                template:
+                  spec:
+                    nodeSelector:
+                      kubernetes.io/hostname: worker1
+  # ----------------------------------------------------
+
   values:
-    # ==========================================
-    # NUCLEAR FIX: GANZ OBEN UNTER VALUES
-    # ==========================================
-    nodeSelector:
-      kubernetes.io/hostname: "worker1"
-
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-              - worker1
-    # ==========================================
-
     ingress:
       enabled: true
       className: traefik
@@ -54,9 +57,9 @@ spec:
           value: "Schanzenschiss1873402!"
         - name: PHP_EXTENSIONS
           value: "mbstring,intl,bcmath"
-        # Neuer Hash für erzwungenes Update
+        # Dummy Hash für das Update
         - name: FORCE_REDEPLOY
-          value: "final-move-v4"
+          value: "final-kustomize-patch-v1"
 
     persistence:
       enabled: true
