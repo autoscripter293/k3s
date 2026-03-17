@@ -1,51 +1,66 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: nextcloud
-  namespace: nextcloud
+name: nextcloud
+namespace: nextcloud
+
 spec:
-  interval: 5m
-  chart:
-    spec:
-      chart: nextcloud
-      version: ">=6.0.0"
-      sourceRef:
-        kind: HelmRepository
-        name: nextcloud
-        namespace: nextcloud
+interval: 5m
 
-  values:
+chart:
+spec:
+chart: nextcloud
+version: ">=6.0.0"
+sourceRef:
+kind: HelmRepository
+name: nextcloud
+namespace: nextcloud
 
-    ingress:
-      enabled: true
-      className: traefik
-      annotations:
-        traefik.ingress.kubernetes.io/router.entrypoints: web
-      hosts:
-        - host: nextcloud.druckruck.de
-          paths:
-            - path: /
-              pathType: Prefix
+values:
 
-    nextcloud:
-      host: nextcloud.druckruck.de
-      username: admin
-      password: "Schanzenschiss1873402!"
+```
+# 👉 ALLES auf worker1 pinnen
+nodeSelector:
+  kubernetes.io/hostname: worker1
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - host: nextcloud.druckruck.de
+      paths:
+        - path: /
+          pathType: Prefix
+
+nextcloud:
+  host: nextcloud.druckruck.de
+  username: admin
+  password: "Schanzenschiss1873402!"
+
+# 👉 Nextcloud Daten (100GB auf worker1)
+persistence:
+  enabled: true
+  storageClass: local-worker1
+  size: 100Gi
+
+mariadb:
+  enabled: true
+
+  auth:
+    database: nextcloud
+    username: nextcloud
+    password: "Schanzenschiss1873402!"
+    rootPassword: "Schanzenschiss1873402!"
+
+  primary:
+    # 👉 MariaDB auch auf worker1
+    nodeSelector:
+      kubernetes.io/hostname: worker1
 
     persistence:
       enabled: true
-      size: 100Gi   # 👈 DEINE 100GB
-
-    mariadb:
-      enabled: true
-
-      auth:
-        database: nextcloud
-        username: nextcloud
-        password: "Schanzenschiss1873402!"
-        rootPassword: "Schanzenschiss1873402!"
-
-      primary:
-        persistence:
-          enabled: true
-          size: 10Gi
+      storageClass: local-worker1
+      size: 10Gi
+```
