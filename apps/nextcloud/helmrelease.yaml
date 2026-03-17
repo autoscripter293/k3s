@@ -16,9 +16,6 @@ spec:
 
   values:
 
-    nodeSelector:
-      kubernetes.io/hostname: worker1
-
     ingress:
       enabled: true
       className: traefik
@@ -32,20 +29,12 @@ spec:
 
     nextcloud:
       host: nextcloud.druckruck.de
-
       username: admin
       password: "Schanzenschiss1873402!"
 
-      phpConfigs:
-        php.ini: |
-          memory_limit=512M
-          upload_max_filesize=10G
-          post_max_size=10G
-
     persistence:
       enabled: true
-      storageClass: openebs-hostpath
-      size: 100Gi
+      size: 100Gi   # 👈 DEINE 100GB
 
     mariadb:
       enabled: true
@@ -57,10 +46,6 @@ spec:
         rootPassword: "Schanzenschiss1873402!"
 
       primary:
-        nodeSelector:
-          kubernetes.io/hostname: worker1
-
         persistence:
           enabled: true
-          storageClass: openebs-hostpath
-          size: 20Gi
+          size: 10Gi
