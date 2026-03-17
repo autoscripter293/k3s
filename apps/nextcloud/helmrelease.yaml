@@ -1,4 +1,4 @@
-apiVersion: helm.toolkit.fluxcd.io/v2
+kapiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: nextcloud
@@ -14,10 +14,27 @@ spec:
         name: nextcloud
         namespace: nextcloud
   values:
+    # Den Pod fest auf worker1 pinnen
     nodeSelector:
       kubernetes.io/hostname: worker1
 
+    ingress:
+      enabled: true
+      className: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: web
+      hosts:
+        - host: nextcloud.druckruck.de
+          paths:
+            - path: /
+              pathType: Prefix
+
     nextcloud:
+      # Wir nutzen das offizielle Nextcloud Image (stabilere Tags)
+      image:
+        repository: nextcloud
+        tag: 30.0.4-apache
+      
       host: nextcloud.druckruck.de
       extraEnv:
         - name: MYSQL_HOST
@@ -28,24 +45,33 @@ spec:
           value: "nextcloud"
         - name: MYSQL_PASSWORD
           value: "Schanzenschiss1873402!"
-      # Admin-Daten für den Initial-Start
+        - name: PHP_EXTENSIONS
+          value: "mbstring,intl,bcmath"
+      
+      # Admin-Konto für die Erst-Initialisierung
       username: admin
       password: Schanzenschiss1873402!
 
     persistence:
       enabled: true
-      # --- HIER SIND DEINE 100 GB ---
+      # Deine gewünschten 100 GB
       size: 100Gi
-      # ------------------------------
 
     mariadb:
       enabled: true
+      # Umstellung auf das offizielle MariaDB Image (Vermeidet Bitnami Pull-Fehler)
       image:
-        repository: bitnami/mariadb
-        tag: 10.11.7-debian-12-r0
+        repository: mariadb
+        tag: "10.11"
       primary:
         nodeSelector:
           kubernetes.io/hostname: "worker1"
         persistence:
           enabled: true
+          # Nutzt dein vorhandenes PV/PVC für die Datenbank
           existingClaim: "mariadb-existing-pvc"
+      auth:
+        database: nextcloud
+        username: nextcloud
+        password: "Schanzenschiss1873402!"
+        rootPassword: "Schanzenschiss1873402!"
