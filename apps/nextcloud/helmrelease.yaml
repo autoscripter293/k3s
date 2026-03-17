@@ -8,44 +8,17 @@ spec:
   chart:
     spec:
       chart: nextcloud
-      version: ">=3.0.0"
+      version: ">=6.0.0"
       sourceRef:
         kind: HelmRepository
         name: nextcloud
         namespace: nextcloud
-
-  # --- DAS IST DER WICHTIGSTE TEIL: DIE BRECHSTANGE ---
-  postRenderers:
-    - kustomize:
-        patches:
-          - target:
-              kind: Deployment
-              name: nextcloud
-            patch: |
-              apiVersion: apps/v1
-              kind: Deployment
-              metadata:
-                name: nextcloud
-              spec:
-                template:
-                  spec:
-                    nodeSelector:
-                      kubernetes.io/hostname: worker1
-  # ----------------------------------------------------
-
   values:
-    ingress:
-      enabled: true
-      className: traefik
-      annotations:
-        traefik.ingress.kubernetes.io/router.entrypoints: web
-      hosts:
-        - host: nextcloud.druckruck.de
-          paths:
-            - path: /
-              pathType: Prefix
+    nodeSelector:
+      kubernetes.io/hostname: worker1
 
     nextcloud:
+      host: nextcloud.druckruck.de
       extraEnv:
         - name: MYSQL_HOST
           value: "nextcloud-mariadb.nextcloud.svc.cluster.local"
@@ -55,35 +28,21 @@ spec:
           value: "nextcloud"
         - name: MYSQL_PASSWORD
           value: "Schanzenschiss1873402!"
-        - name: PHP_EXTENSIONS
-          value: "mbstring,intl,bcmath"
-        # Dummy Hash für das Update
-        - name: FORCE_REDEPLOY
-          value: "final-kustomize-patch-v2"
+      # Admin-Daten für den Initial-Start
+      username: admin
+      password: Schanzenschiss1873402!
 
     persistence:
       enabled: true
-      # --- NEU: Haupt-Volume auf HostPath umgestellt (ersetzt das PVC) ---
-      nextcloud:
-        enabled: true
-        type: hostPath
-        hostPath: /var/openebs/nextcloud/root
-      # -----------------------------------------------------------------
-      nextcloudData:
-        enabled: true
-        type: hostPath
-        hostPath: /var/openebs/nextcloud/data
-      nextcloudConfig:
-        enabled: true
-        type: hostPath
-        hostPath: /var/openebs/nextcloud/config
-      nextcloudApps:
-        enabled: true
-        type: hostPath
-        hostPath: /var/openebs/nextcloud/custom_apps
+      # --- HIER SIND DEINE 100 GB ---
+      size: 100Gi
+      # ------------------------------
 
     mariadb:
       enabled: true
+      image:
+        repository: bitnami/mariadb
+        tag: 10.11.7-debian-12-r0
       primary:
         nodeSelector:
           kubernetes.io/hostname: "worker1"
