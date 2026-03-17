@@ -31,26 +31,16 @@ spec:
               pathType: Prefix
 
     nextcloud:
-      image:
-        repository: nextcloud
-        tag: 33.0.0-apache
-
       host: nextcloud.druckruck.de
 
       username: admin
       password: "Schanzenschiss1873402!"
 
-      extraEnv:
-        - name: MYSQL_HOST
-          value: nextcloud-mariadb
-        - name: MYSQL_DATABASE
-          value: nextcloud
-        - name: MYSQL_USER
-          value: nextcloud
-        - name: MYSQL_PASSWORD
-          value: "Schanzenschiss1873402!"
-        - name: PHP_EXTENSIONS
-          value: mbstring,intl,bcmath
+      phpConfigs:
+        php.ini: |
+          memory_limit=512M
+          upload_max_filesize=10G
+          post_max_size=10G
 
     persistence:
       enabled: true
@@ -59,10 +49,6 @@ spec:
 
     mariadb:
       enabled: true
-
-      image:
-        repository: mariadb
-        tag: "10.11"
 
       auth:
         database: nextcloud
@@ -78,12 +64,3 @@ spec:
           enabled: true
           storageClass: openebs-hostpath
           size: 20Gi
-
-        podSecurityContext:
-          fsGroup: 1001
-
-        containerSecurityContext:
-          runAsUser: 1001
-
-      volumePermissions:
-        enabled: true
