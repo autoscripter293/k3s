@@ -1,4 +1,4 @@
-kapiVersion: helm.toolkit.fluxcd.io/v2
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: nextcloud
@@ -14,7 +14,6 @@ spec:
         name: nextcloud
         namespace: nextcloud
   values:
-    # Den Pod fest auf worker1 pinnen
     nodeSelector:
       kubernetes.io/hostname: worker1
 
@@ -30,10 +29,9 @@ spec:
               pathType: Prefix
 
     nextcloud:
-      # Wir nutzen das offizielle Nextcloud Image (stabilere Tags)
       image:
         repository: nextcloud
-        tag: 30.0.4-apache
+        tag: 33.0.0-apache
       
       host: nextcloud.druckruck.de
       extraEnv:
@@ -48,18 +46,15 @@ spec:
         - name: PHP_EXTENSIONS
           value: "mbstring,intl,bcmath"
       
-      # Admin-Konto für die Erst-Initialisierung
       username: admin
       password: Schanzenschiss1873402!
 
     persistence:
       enabled: true
-      # Deine gewünschten 100 GB
       size: 100Gi
 
     mariadb:
       enabled: true
-      # Umstellung auf das offizielle MariaDB Image (Vermeidet Bitnami Pull-Fehler)
       image:
         repository: mariadb
         tag: "10.11"
@@ -68,7 +63,6 @@ spec:
           kubernetes.io/hostname: "worker1"
         persistence:
           enabled: true
-          # Nutzt dein vorhandenes PV/PVC für die Datenbank
           existingClaim: "mariadb-existing-pvc"
       auth:
         database: nextcloud
