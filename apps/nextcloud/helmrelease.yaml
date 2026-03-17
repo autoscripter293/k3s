@@ -13,7 +13,9 @@ spec:
         kind: HelmRepository
         name: nextcloud
         namespace: nextcloud
+
   values:
+
     nodeSelector:
       kubernetes.io/hostname: worker1
 
@@ -32,40 +34,56 @@ spec:
       image:
         repository: nextcloud
         tag: 33.0.0-apache
-      
+
       host: nextcloud.druckruck.de
+
+      username: admin
+      password: "Schanzenschiss1873402!"
+
       extraEnv:
         - name: MYSQL_HOST
-          value: "nextcloud-mariadb.nextcloud.svc.cluster.local"
+          value: nextcloud-mariadb
         - name: MYSQL_DATABASE
-          value: "nextcloud"
+          value: nextcloud
         - name: MYSQL_USER
-          value: "nextcloud"
+          value: nextcloud
         - name: MYSQL_PASSWORD
           value: "Schanzenschiss1873402!"
         - name: PHP_EXTENSIONS
-          value: "mbstring,intl,bcmath"
-      
-      username: admin
-      password: Schanzenschiss1873402!
+          value: mbstring,intl,bcmath
 
     persistence:
       enabled: true
+      storageClass: openebs-hostpath
       size: 100Gi
 
     mariadb:
       enabled: true
+
       image:
         repository: mariadb
         tag: "10.11"
-      primary:
-        nodeSelector:
-          kubernetes.io/hostname: "worker1"
-        persistence:
-          enabled: true
-          existingClaim: "mariadb-existing-pvc"
+
       auth:
         database: nextcloud
         username: nextcloud
         password: "Schanzenschiss1873402!"
         rootPassword: "Schanzenschiss1873402!"
+
+      primary:
+        nodeSelector:
+          kubernetes.io/hostname: worker1
+
+        persistence:
+          enabled: true
+          storageClass: openebs-hostpath
+          size: 20Gi
+
+        podSecurityContext:
+          fsGroup: 1001
+
+        containerSecurityContext:
+          runAsUser: 1001
+
+      volumePermissions:
+        enabled: true
