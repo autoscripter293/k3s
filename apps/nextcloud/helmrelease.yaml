@@ -1,4 +1,3 @@
-cat > ~/k3s/apps/nextcloud/helmrelease.yaml << 'EOF'
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -15,10 +14,8 @@ spec:
         name: nextcloud
         namespace: nextcloud
   values:
-    # 👉 ALLES auf worker1 pinnen
     nodeSelector:
       kubernetes.io/hostname: worker1
-    
     ingress:
       enabled: true
       className: traefik
@@ -29,18 +26,14 @@ spec:
           paths:
             - path: /
               pathType: Prefix
-    
     nextcloud:
       host: nextcloud.druckruck.de
       username: admin
       password: "Schanzenschiss1873402!"
-    
-    # 👉 Nextcloud Daten (100GB auf worker1)
     persistence:
       enabled: true
       storageClass: local-worker1
       size: 100Gi
-    
     mariadb:
       enabled: true
       auth:
@@ -49,11 +42,9 @@ spec:
         password: "Schanzenschiss1873402!"
         rootPassword: "Schanzenschiss1873402!"
       primary:
-        # 👉 MariaDB auch auf worker1
         nodeSelector:
           kubernetes.io/hostname: worker1
         persistence:
           enabled: true
           storageClass: local-worker1
           size: 10Gi
-
