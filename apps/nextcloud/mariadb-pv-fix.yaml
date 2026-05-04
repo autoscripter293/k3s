@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mariadb-static-pv
+spec:
+  capacity:
+    storage: 10Gi # Muss >= der Anforderung im HelmRelease sein
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-worker1-ssd # Das ist der "Kleber"
+  local:
+    path: /var/openebs/mariadb
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - worker1

@@ -46,5 +46,5 @@ spec:
           kubernetes.io/hostname: worker1
         persistence:
           enabled: true
-          storageClass: local-worker1
+          storageClass: local-worker1-ssd
           size: 10Gi
