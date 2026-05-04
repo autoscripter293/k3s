@@ -32,7 +32,7 @@ spec:
       password: "Schanzenschiss1873402!"
     persistence:
       enabled: true
-      storageClass: local-worker1
+      storageClass: local-worker1-ssd
       size: 100Gi
     mariadb:
       enabled: true
