@@ -25,7 +25,7 @@ spec:
         - host: nextcloud.druckruck.de
           paths:
             - path: /
-              pathType: Prefix
+              pathType: ImplementationSpecific
     nextcloud:
       host: nextcloud.druckruck.de
       username: admin
